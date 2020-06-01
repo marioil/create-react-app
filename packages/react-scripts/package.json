@@ -1,10 +1,10 @@
 {
-  "name": "react-scripts",
-  "version": "3.4.1",
+  "name": "@marioil/react-scripts",
+  "version": "3.4.2",
   "description": "Configuration and scripts for Create React App.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/facebook/create-react-app.git",
+    "url": "marioil/create-react-app.git",
     "directory": "packages/react-scripts"
   },
   "license": "MIT",
@@ -12,7 +12,7 @@
     "node": ">=10"
   },
   "bugs": {
-    "url": "https://github.com/facebook/create-react-app/issues"
+    "url": "https://github.com/marioil/create-react-app/issues"
   },
   "files": [
     "bin",
@@ -37,6 +37,7 @@
     "babel-jest": "^26.0.1",
     "babel-loader": "8.1.0",
     "babel-plugin-named-asset-import": "^0.3.6",
+    "babel-plugin-styled-components": "^1.10.7",
     "babel-preset-react-app": "^9.1.2",
     "bfj": "^7.0.2",
     "camelcase": "^6.0.0",

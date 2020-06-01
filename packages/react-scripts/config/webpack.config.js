@@ -434,6 +434,14 @@ module.exports = function (webpackEnv) {
                       },
                     },
                   ],
+                  [
+                    require.resolve('babel-plugin-styled-components'),
+                    {
+                      pure: true,
+                      ssr: false,
+                      displayName: isEnvProduction ? false : true,
+                    },
+                  ],
                   isEnvDevelopment &&
                     shouldUseReactRefresh &&
                     require.resolve('react-refresh/babel'),
