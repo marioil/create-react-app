@@ -439,9 +439,10 @@ module.exports = function (webpackEnv) {
                     {
                       pure: true,
                       ssr: false,
-                      displayName: isEnvProduction ? false : true,
+                      displayName: isEnvDevelopment ? true : false,
                     },
                   ],
+                  ['@babel/plugin-proposal-optional-chaining'],
                   isEnvDevelopment &&
                     shouldUseReactRefresh &&
                     require.resolve('react-refresh/babel'),
