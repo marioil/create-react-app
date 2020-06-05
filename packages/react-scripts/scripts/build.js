@@ -227,99 +227,102 @@ function copyPublicFolder() {
   });
 }
 
-async function buildWidgets(data) {
+async function asyncForEach(array, callback) {
+  for (let index = 0; index < array.length; index++) {
+    await callback(array[index], index, array);
+  }
+}
+
+function addaptWebpackConfigForWidget(widgetPath, widgetName) {
+  const config = configFactory('production');
+
+  /** For some reason, we need to disable the splitChunks and runtimeChunk for widgets to work */
+  config.optimization.splitChunks = {
+    cacheGroups: {
+      default: false,
+    },
+  };
+
+  config.optimization.runtimeChunk = false;
+
+  config.entry = [
+    `${paths.appPath}/src/web-widgets/utils/remote-route.js`,
+    widgetPath,
+  ];
+
+  config.output.filename = config.output.filename.replace(
+    'static/',
+    `widgets/${widgetName}/static/`
+  );
+
+  config.output.chunkFilename = config.output.chunkFilename.replace(
+    'static/',
+    `widgets/${widgetName}/static/`
+  );
+
+  config.module.rules.map(rule => {
+    if (rule.oneOf) {
+      rule.oneOf.forEach(oneOfRule => {
+        if (oneOfRule.options) {
+          for (let key in oneOfRule.options) {
+            if (key === 'name') {
+              oneOfRule.options[key] = oneOfRule.options[key].replace(
+                'static/media/',
+                `widgets/${widgetName}/static/media/`
+              );
+            }
+          }
+        }
+      });
+    }
+
+    return rule;
+  });
+
+  // Remove some plugins which are not needed for the widget builds
+  config.plugins = config.plugins.filter(plugin => {
+    const pluginName = plugin.constructor.name;
+    const pluginsToRemove = ['HtmlWebpackPlugin', 'GenerateSW'];
+
+    return !pluginsToRemove.includes(pluginName);
+  });
+
+  config.plugins = config.plugins.map(plugin => {
+    const pluginName = plugin.constructor.name;
+
+    if (pluginName === 'ManifestPlugin') {
+      plugin.opts.fileName = plugin.opts.fileName.replace(
+        'asset-manifest.json',
+        `widgets/${widgetName}/asset-manifest.json`
+      );
+    }
+
+    if (pluginName === 'MiniCssExtractPlugin') {
+      plugin.options.filename = plugin.options.filename.replace(
+        'static/css/',
+        `widgets/${widgetName}/static/css/`
+      );
+      plugin.options.chunkFilename = plugin.options.chunkFilename.replace(
+        'static/css/',
+        `widgets/${widgetName}/static/css/`
+      );
+    }
+
+    return plugin;
+  });
+
+  return webpack(config);
+}
+
+async function buildWidgets(buildData) {
+  const widgetsMainFilesMap = {};
+
   console.log(chalk.green('App build is successful!'));
   console.log(chalk.cyan('Creating an optimized production widgets build...'));
 
-  const widgetsMainFilesMap = {};
-
-  async function asyncForEach(array, callback) {
-    for (let index = 0; index < array.length; index++) {
-      await callback(array[index], index, array);
-    }
-  }
-
-  const addaptCompilerForWidget = (widgetPath, widgetName) => {
-    const config = configFactory('production');
-
-    /** For some reason, we need to disable the splitChunks and runtimeChunk for widgets to work */
-    config.optimization.splitChunks = {
-      cacheGroups: {
-        default: false,
-      },
-    };
-
-    config.optimization.runtimeChunk = false;
-
-    config.entry = [
-      `${paths.appPath}/src/web-widgets/utils/remote-route.js`,
-      widgetPath,
-    ];
-
-    config.output.filename = config.output.filename.replace(
-      'static/',
-      `widgets/${widgetName}/static/`
-    );
-
-    config.output.chunkFilename = config.output.chunkFilename.replace(
-      'static/',
-      `widgets/${widgetName}/static/`
-    );
-
-    config.module.rules.map(rule => {
-      if (rule.oneOf) {
-        rule.oneOf.forEach(oneOfRule => {
-          if (oneOfRule.options) {
-            for (let key in oneOfRule.options) {
-              if (key === 'name') {
-                oneOfRule.options[key] = oneOfRule.options[key].replace(
-                  'static/media/',
-                  `widgets/${widgetName}/static/media/`
-                );
-              }
-            }
-          }
-        });
-      }
-
-      return rule;
-    });
-
-    // Remove "HtmlWebpackPlugin" from plugins for widgets since we don't need it
-    config.plugins.shift();
-
-    config.plugins = config.plugins.map(plugin => {
-      if (plugin.opts && plugin.opts.fileName === 'asset-manifest.json') {
-        plugin.opts.fileName = plugin.opts.fileName.replace(
-          'asset-manifest.json',
-          `widgets/${widgetName}/asset-manifest.json`
-        );
-      }
-
-      if (
-        plugin.options &&
-        plugin.options.filename &&
-        plugin.options.filename.indexOf('.css') !== -1
-      ) {
-        plugin.options.filename = plugin.options.filename.replace(
-          'static/css/',
-          `widgets/${widgetName}/static/css/`
-        );
-        plugin.options.chunkFilename = plugin.options.chunkFilename.replace(
-          'static/css/',
-          `widgets/${widgetName}/static/css/`
-        );
-      }
-
-      return plugin;
-    });
-
-    return webpack(config);
-  };
-
   await asyncForEach(paths.widgets, async widgetPath => {
     const widgetName = path.basename(widgetPath).split('.')[0];
-    const compiler = addaptCompilerForWidget(widgetPath, widgetName);
+    const compiler = addaptWebpackConfigForWidget(widgetPath, widgetName);
 
     const widgetBuildResult = await new Promise((resolve, reject) => {
       compiler.run((err, stats) => {
@@ -419,5 +422,5 @@ async function buildWidgets(data) {
 
   console.log(chalk.green('Widgets build is successful!\n'));
 
-  return data;
+  return buildData;
 }
